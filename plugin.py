@@ -1,3 +1,5 @@
+import re
+
 from cardinal.decorators import event, regex
 
 PROMPT_REGEX = r"^(.*) \(\d\) \(cash \$\d+\) on .*$"
@@ -17,21 +19,29 @@ class MonopNotifierPlugin:
         if user.nick != GAME_NICK:
             return
 
+        if channel != GAME_CHANNEL:
+            return
+
+        match = re.match(PROMPT_REGEX, message)
+
         with self.db() as db:
             db['current_prompt'] = {
-                'nick': user.nick,
+                'nick': match.group(1),
                 'prompt': message,
             }
 
     @event("irc.join")
     def on_join(self, cardinal, user, channel):
+        if channel != GAME_CHANNEL:
+            return
+
         with self.db() as db:
             prompt = db['current_prompt']
 
         if not prompt:
             return
 
-        if user.nick != prompt['nick']:
+        if user.nick.lower() != prompt['nick'].lower():
             return
 
         cardinal.sendMsg(channel, prompt['prompt'])
