@@ -3,7 +3,7 @@ import re
 from cardinal.decorators import event, regex
 
 PROMPT_REGEX = r"^(.*) \(\d\) \(cash \$\d+\) on .*$"
-
+GAME_OVER_REGEX = r"^Then (.+) WINS!!!!!$"
 GAME_NICK = "monop"
 GAME_CHANNEL = "#monop"
 
@@ -29,6 +29,17 @@ class MonopNotifierPlugin:
                 'nick': match.group(1),
                 'prompt': message,
             }
+
+    @regex(GAME_OVER_REGEX)
+    def game_over(self, cardinal, user, channel, message):
+        if user.nick != GAME_NICK:
+            return
+
+        if channel != GAME_CHANNEL:
+            return
+
+        with self.db() as db:
+            db['current_prompt'] = None
 
     @event("irc.join")
     def on_join(self, cardinal, user, channel):
